@@ -218,7 +218,8 @@ def real_solid_harmonic(angmom, mag):
     return harmonic
 
 
-def generate_transformation(angmom, cartesian_order):
+def generate_transformation(angmom, cartesian_order, apply_from):
+    # pylint: disable=R0912
     """Generate the transformation matrix for a given shell.
 
     The rows of the matrix correspond to the Cartesian primitives, ordered as given
@@ -232,6 +233,8 @@ def generate_transformation(angmom, cartesian_order):
     cartesian_order : list(len = 2 * angmom + 1) of tuple(len = 3)
         The order of the Cartesian primitives, with each tuple holding
         components in the order a_x, a_y, a_z.
+    apply_from : str
+        The side on which the transformation matrix is applied. One of {"left", "right"}.
 
     Returns
     -------
@@ -267,6 +270,12 @@ def generate_transformation(angmom, cartesian_order):
         raise ValueError("Too many Cartesian primitives given.")
     if not all(np.sum(t) == angmom for t in cartesian_order):
         raise ValueError("Each primitive's components must sum to the angular momentum.")
+    if not isinstance(apply_from, str):
+        raise TypeError("Specify the side on which the transformation is applied as a string")
+    if apply_from not in ["left", "right"]:
+        raise ValueError(
+            "Specify the side of application for the transformation using 'left' or 'right'"
+        )
 
     order = {components: index for index, components in enumerate(cartesian_order)}
     transform = np.zeros(((angmom + 1) * (angmom + 2) // 2, 2 * angmom + 1))
@@ -276,4 +285,6 @@ def generate_transformation(angmom, cartesian_order):
         for components, coeff in harmonic.items():
             transform[order[components], mag + angmom] = coeff
 
+    if apply_from == "left":
+        return transform.T
     return transform
