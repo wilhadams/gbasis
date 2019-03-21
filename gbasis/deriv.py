@@ -216,7 +216,7 @@ def eval_deriv_shell(*, coords, orders, shell):
 
 
 def eval_shell(*, coords, shell):
-    """Return the a set of Cartesian contractions evaluated at the given coordinates.
+    """Return the set of Cartesian contractions evaluated at the given coordinates.
 
     Parameters
     ----------
