@@ -183,7 +183,7 @@ class ContractedCartesianGaussians:
 
         Returns
         -------
-        exps : np.ndarray(L,)
+        exps : np.ndarray(K,)
             Exponents of the primitives, :math:`\{\alpha_i\}`.
 
         """
@@ -195,7 +195,7 @@ class ContractedCartesianGaussians:
 
         Parameters
         ----------
-        exps : np.ndarray(L,)
+        exps : np.ndarray(K,)
             Exponents of the primitives, :math:`\{\alpha_i\}`.
 
         Raises
@@ -219,7 +219,7 @@ class ContractedCartesianGaussians:
 
         Returns
         -------
-        coeffs : np.ndarray(L,)
+        coeffs : np.ndarray(K,)
             Contraction coefficients, :math:`\{d_i\}`, of the primitives.
 
         """
@@ -231,7 +231,7 @@ class ContractedCartesianGaussians:
 
         Parameters
         ----------
-        coeffs : np.ndarray(L,)
+        coeffs : np.ndarray(K,)
             Contraction coefficients, :math:`\{d_i\}`, of the primitives.
 
         Raises
@@ -255,7 +255,7 @@ class ContractedCartesianGaussians:
 
         Returns
         -------
-        angmom_components : np.ndarray(L, 3)
+        angmom_components : np.ndarray((angmom + 1) * (angmom + 2) / 2, 3)
             The x, y, and z components of the angular momentum (:math:`\vec{a} = (a_x, a_y, a_z)`
             where :math:`a_x + a_y + a_z = l`).
 
@@ -280,9 +280,9 @@ class ContractedCartesianGaussians:
 
         Returns
         -------
-        norm : np.ndarray(L, K)
-            The normalization constant of each of the Cartesian Gaussian primitive of the Cartesian
-            contraction.
+        norm : np.ndarray((angmom + 1) * (angmom + 2) / 2, K)
+            The normalization constant of each of the Cartesian Gaussian primitives of the Cartesian
+            contraction at each exponent.
 
         """
         exponents = self.exps[np.newaxis, :]
@@ -296,12 +296,12 @@ class ContractedCartesianGaussians:
 
     @property
     def num_contr(self):
-        """Return the number of contractions.
+        """Return the number of Cartesian Gaussian primitives of given angular momentum.
 
         Returns
         -------
         num_contr : int
-            Number of contrations.
+            Number of Cartesian Gaussian primitives of angular momentum = angmom.
 
         """
         return (self.angmom + 1) * (self.angmom + 2) // 2
