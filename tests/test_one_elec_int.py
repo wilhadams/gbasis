@@ -5,7 +5,7 @@ import pytest
 from scipy.special import hyp1f1
 
 
-def test_compute_one_elec_integrals():
+def test_compute_one_elec_integrals_s_type():
     # ContractedCartesianGaussians(angmom, coord, charge, coeffs, exps)
     s_type_one = ContractedCartesianGaussians(
         1, np.array([0.5, 1, 1.5]), 0, np.array([1.0]), np.array([0.1])
@@ -41,20 +41,189 @@ def test_compute_one_elec_integrals():
         norm_b,
     )
     # Check V(m)(000|000) from hand-calculated values.
+    v0_000_000 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
     assert np.allclose(
-        np.exp(np.array([-1/60, -1/60, -0.0375])) *
-        hyp1f1(1/2, 3/2, np.array([-(1/20+1/300), -(16/100 + 1/300), -0.3675])),
-        s_test[0, 0,0,0, 0,0,0, :, 0, 0]
+        v0_000_000,
+        s_test[0, 0,0,0, 0,0,0, 0, 0]
     )
+    v1_000_000 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
     assert np.allclose(
-        np.exp(np.array([-1 / 60, -1 / 60, -0.0375])) *
-        (hyp1f1(1 / 2 + 1, 3 / 2 + 1, np.array([-(1 / 20 + 1 / 300), -(16 / 100 + 1 / 300), -0.3675])) / (2 * 1 + 1)),
-        s_test[1, 0,0,0, 0,0,0, :, 0, 0]
+        v1_000_000,
+        s_test[1, 0,0,0, 0,0,0, 0, 0]
     )
+    v2_000_000 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
     assert np.allclose(
-        np.exp(np.array([-1 / 60, -1 / 60, -0.0375])) *
-        (hyp1f1(1 / 2 + 2, 3 / 2 + 2, np.array([-(1 / 20 + 1 / 300), -(16 / 100 + 1 / 300), -0.3675])) / (2 * 2 + 1)),
-        s_test[2, 0,0,0, 0,0,0, :, 0, 0]
+        v2_000_000,
+        s_test[2, 0,0,0, 0,0,0, 0, 0]
     )
 
+    # Check one-index recursion i.e. V(m)(100|000) using recursion
+    v1_100_000 = 1/6 * v1_000_000 - 2/3*v2_000_000
+    assert np.allclose(
+        v1_100_000,
+        s_test[1, 1,0,0, 0,0,0, 0, 0]
+    )
+    v1_010_000 = 1/6 * v1_000_000 - 14/12*v2_000_000
+    assert np.allclose(
+        v1_100_000,
+        s_test[1, 1,0,0, 0,0,0, 0, 0]
+    )
+    v1_001_000 = 1/4 * v1_000_000 - 7/4*v2_000_000
+    assert np.allclose(
+        v1_100_000,
+        s_test[1, 1,0,0, 0,0,0, 0, 0]
+    )
+    print(s_test[0, 1,:,0, 0,0,0, :, :])
+
+
+def test_compute_one_elec_integrals_l1():
+    # ContractedCartesianGaussians(angmom, coord, charge, coeffs, exps)
+    contr_one = ContractedCartesianGaussians(
+        1, np.array([0.5, 1, 1.5]), 0, np.array([1.0, 2.0]), np.array([0.1, 0.25])
+    )
+    contr_two = ContractedCartesianGaussians(
+        1, np.array([1.5, 2, 3]), 0, np.array([3.0, 4.0]), np.array([0.02, 0.01])
+    )
+    coord_a = contr_one.coord
+    angmom_a = contr_one.angmom
+    angmoms_a = contr_one.angmom_components
+    exps_a = contr_one.exps
+    coeffs_a = contr_one.coeffs
+    norm_a = contr_one.norm
+    coord_b = contr_two.coord
+    angmom_b = contr_two.angmom
+    angmoms_b = contr_two.angmom_components
+    exps_b = contr_two.exps
+    coeffs_b = contr_two.coeffs
+    norm_b = contr_two.norm
+    answer = _compute_one_elec_integrals(
+        np.array([0., 0., 0.]),      # coord_point
+        coord_a,
+        angmom_a,
+        angmoms_a,
+        exps_a,
+        coeffs_a,
+        norm_a,
+        coord_b,
+        angmom_b,
+        angmoms_b,
+        exps_b,
+        coeffs_b,
+        norm_b,
+    )
+    # Check V(m)(000|000) from hand-calculated values for known s-type values above.
+    v0_000_000 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
+    assert np.allclose(
+        v0_000_000,
+        answer[0, 0,0,0, 0,0,0, 0, 0]
+    )
+    v1_000_000 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
+    assert np.allclose(
+        v1_000_000,
+        answer[1, 0,0,0, 0,0,0, 0, 0]
+    )
+    v2_000_000 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
+    assert np.allclose(
+        v2_000_000,
+        answer[2, 0,0,0, 0,0,0, 0, 0]
+    )
+
+
+def test_compute_one_elec_integrals():
+    # ContractedCartesianGaussians(angmom, coord, charge, coeffs, exps)
+    contr_one = ContractedCartesianGaussians(
+        3, np.array([0.5, 1, 1.5]), 0, np.array([1.0, 2.0]), np.array([0.1, 0.25])
+    )
+    contr_two = ContractedCartesianGaussians(
+        2, np.array([1.5, 2, 3]), 0, np.array([3.0, 4.0]), np.array([0.02, 0.01])
+    )
+    coord_a = contr_one.coord
+    angmom_a = contr_one.angmom
+    angmoms_a = contr_one.angmom_components
+    exps_a = contr_one.exps
+    coeffs_a = contr_one.coeffs
+    norm_a = contr_one.norm
+    coord_b = contr_two.coord
+    angmom_b = contr_two.angmom
+    angmoms_b = contr_two.angmom_components
+    exps_b = contr_two.exps
+    coeffs_b = contr_two.coeffs
+    norm_b = contr_two.norm
+    answer = _compute_one_elec_integrals(
+        np.array([0., 0., 0.]),      # coord_point
+        coord_a,
+        angmom_a,
+        angmoms_a,
+        exps_a,
+        coeffs_a,
+        norm_a,
+        coord_b,
+        angmom_b,
+        angmoms_b,
+        exps_b,
+        coeffs_b,
+        norm_b,
+    )
+    # Check V(m)(000|000) from hand-calculated values for known s-type values above.
+    v0_000_000 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
+    assert np.allclose(
+        v0_000_000,
+        answer[0, 0,0,0, 0,0,0, 0, 0]
+    )
+    v1_000_000 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
+    assert np.allclose(
+        v1_000_000,
+        answer[1, 0,0,0, 0,0,0, 0, 0]
+    )
+    v2_000_000 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
+    assert np.allclose(
+        v2_000_000,
+        answer[2, 0,0,0, 0,0,0, 0, 0]
+    )
+    v0_200_000 = 1/6*answer[0, 1,0,0, 0,0,0, 0,0] - 2/3*answer[1, 1,0,0, 0,0,0, 0,0] \
+                 + (answer[0, 0,0,0, 0,0,0, 0,0] - answer[1, 0,0,0, 0,0,0, 0,0])/(2*.12)
+    assert np.allclose(
+        v0_200_000,
+        answer[0, 2,0,0, 0,0,0, 0, 0]
+    )
+
+
+def test_compute_one_elec_integrals_speed():
+    import time
+    contr_one = ContractedCartesianGaussians(
+        5, np.array([0.5, 1, 1.5]), 0, np.random.random_sample((10,)), np.random.random_sample((10,))
+    )
+    contr_two = ContractedCartesianGaussians(
+        5, np.array([1.5, 2, 3]), 0, np.random.random_sample((10,)), np.random.random_sample((10,))
+    )
+    t0 = time.time()
+    coord_a = contr_one.coord
+    angmom_a = contr_one.angmom
+    angmoms_a = contr_one.angmom_components
+    exps_a = contr_one.exps
+    coeffs_a = contr_one.coeffs
+    norm_a = contr_one.norm
+    coord_b = contr_two.coord
+    angmom_b = contr_two.angmom
+    angmoms_b = contr_two.angmom_components
+    exps_b = contr_two.exps
+    coeffs_b = contr_two.coeffs
+    norm_b = contr_two.norm
+    answer = _compute_one_elec_integrals(
+        np.array([0., 0., 0.]),      # coord_point
+        coord_a,
+        angmom_a,
+        angmoms_a,
+        exps_a,
+        coeffs_a,
+        norm_a,
+        coord_b,
+        angmom_b,
+        angmoms_b,
+        exps_b,
+        coeffs_b,
+        norm_b,
+    )
+    t1 = time.time()
+    print(t1-t0)
 

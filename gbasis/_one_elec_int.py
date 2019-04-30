@@ -63,7 +63,7 @@ def _compute_one_elec_integrals(
     """
     # TODO: Overlap screening
 
-    # NOTE: following convention will be used to organize the axis of the multidimensional arrays
+    # NOTE: following convention will be used to organize the axes of the integral arrays
     # axis 0 : l (size: l_a + l_b + 1)
     # axis 1 : a_x (size: l_a + l_b + 1)
     # axis 2 : a_y (size: l_a + l_b + 1)
@@ -71,23 +71,25 @@ def _compute_one_elec_integrals(
     # axis 4 : b_x (size: l_a + l_b + 1)
     # axis 5 : b_y (size: l_a + l_b + 1)
     # axis 6 : b_z (size: l_a + l_b + 1)
-    # axis 7 : dimension (x,y,z) of coordinate (size: 3)
-    # axis 8 : primitive of contraction b (size: K_b)
-    # axis 9 : primitive of contraction a (size: K_a)
+    # axis 7 : primitive of contraction b (size: K_b)
+    # axis 8 : primitive of contraction a (size: K_a)
 
     integrals = np.zeros(
         (angmom_a + angmom_b + 1,
          angmom_a + angmom_b + 1, angmom_a + angmom_b + 1, angmom_a + angmom_b + 1,
          angmom_a + angmom_b + 1, angmom_a + angmom_b + 1, angmom_a + angmom_b + 1,
-         3, exps_b.size, exps_a.size)
+         exps_b.size, exps_a.size)
     )
 
-    # Adjust axes
-    coord_point = coord_point[np.newaxis, np.newaxis,np.newaxis,np.newaxis, np.newaxis,np.newaxis,np.newaxis, :, np.newaxis, np.newaxis]
-    coord_a = coord_a[np.newaxis, np.newaxis,np.newaxis,np.newaxis, np.newaxis,np.newaxis,np.newaxis, :, np.newaxis, np.newaxis]
-    coord_b = coord_b[np.newaxis, np.newaxis,np.newaxis,np.newaxis, np.newaxis,np.newaxis,np.newaxis, :, np.newaxis, np.newaxis]
-    exps_a = exps_a[np.newaxis, np.newaxis,np.newaxis,np.newaxis, np.newaxis,np.newaxis,np.newaxis, np.newaxis, np.newaxis, :]
-    exps_b = exps_b[np.newaxis, np.newaxis,np.newaxis,np.newaxis, np.newaxis,np.newaxis,np.newaxis, np.newaxis, :, np.newaxis]
+    # Adjust axes for pre-work
+    # axis 0 : primitive of contraction b (size: K_b)
+    # axis 1 : primitive of contraction a (size: K_a)
+    # axis 2 : components of vectors (x, y, z) (size: 3)
+    coord_point = coord_point[np.newaxis, np.newaxis, :]
+    coord_a = coord_a[np.newaxis, np.newaxis, :]
+    coord_b = coord_b[np.newaxis, np.newaxis, :]
+    exps_a = exps_a[np.newaxis, :, np.newaxis]
+    exps_b = exps_b[:, np.newaxis, np.newaxis]
 
     # sum of the exponents
     exps_sum = exps_a + exps_b
@@ -103,13 +105,77 @@ def _compute_one_elec_integrals(
 
     # Initialize V(m)(000|000) for all m
     # NOTE: There's some documented instability for hyp1f1, mainly for large values or complex numbers.
-    # In this case it seems fine, but could be a source of unwanted behaviour.
+    # In this case it seems fine, since m should be less than 10 in most cases, and except for exceptional
+    # cases the input, while negative, shouldn't be very large. In scipy > 0.16, this problem becomes a
+    # precision error in most cases where it was an overflow error before, so the values should be close
+    # even when they are wrong.
     for m in range(angmom_a + angmom_b + 1):
-        integrals[m, 0:1,0:1,0:1, 0:1,0:1,0:1, :, :, :] = hyp1f1(
-            m + 1/2, m + 3/2, (-exps_sum * np.abs(rel_coord_point) ** 2)
-        ) / (2 * m + 1) * np.exp(-harm_mean * np.abs(coord_a - coord_b) ** 2)
+        integrals[m, 0:1,0:1,0:1, 0:1,0:1,0:1, :, :] = \
+            hyp1f1(m + 1/2, m + 3/2, (-exps_sum.squeeze() * (rel_coord_point ** 2).sum(2))) / (2 * m + 1) \
+            * np.exp(-harm_mean.squeeze() * (rel_dist ** 2).sum(2))
 
     # Vertical recursion for one nonzero index i.e. V(010|000)
+    # Slice to avoid if statement
+    # Increment a_x:
+    integrals[:-1, 1,0,0, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 0]*integrals[:-1, 0,0,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 0]*integrals[1:, 0,0,0, 0,0,0, :, :]
+    # Increment a_y:
+    integrals[:-1, 0,1,0, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 1] * integrals[:-1, 0,0,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 1] * integrals[1:, 0,0,0, 0,0,0, :, :]
+    # Increment a_z
+    integrals[:-1, 0,0,1, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 2] * integrals[:-1, 0,0,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 2] * integrals[1:, 0,0,0, 0,0,0, :, :]
+    for a in range(1, angmom_a + angmom_b):
+        # Increment a_x:
+        integrals[:-1, a+1,0,0, 0,0,0, :, :] = \
+            rel_coord_a[:, :, 0]*integrals[:-1, a,0,0, 0,0,0, :, :] \
+            - rel_coord_point[:, :, 0]*integrals[1:, a,0,0, 0,0,0, :, :] \
+            + a/(2*exps_sum.squeeze()) * (
+                    integrals[:-1, a-1,0,0, 0,0,0, :, :] - integrals[1:, a-1,0,0, 0,0,0, :, :]
+            )
+        # Increment a_y:
+        integrals[:-1, 0,a+1,0, 0,0,0, :, :] = \
+            rel_coord_a[:, :, 1] * integrals[:-1, 0,a,0, 0,0,0, :, :] \
+            - rel_coord_point[:, :, 1] * integrals[1:, 0,a,0, 0,0,0, :, :] \
+            + a/(2*exps_sum.squeeze()) * (
+                    integrals[:-1, 0,a-1,0, 0,0,0, :, :] - integrals[1:, 0,a-1,0, 0,0,0, :, :]
+            )
+        # Increment a_z
+        integrals[:-1, 0,0,a+1, 0,0,0, :, :] = \
+            rel_coord_a[:, :, 2] * integrals[:-1, 0,0,a, 0,0,0, :, :] \
+            - rel_coord_point[:, :, 2] * integrals[1:, 0,0,a, 0,0,0, :, :] \
+            + a/(2*exps_sum.squeeze()) * (
+                    integrals[:-1, 0,0,a-1, 0,0,0, :, :] - integrals[1:, a-1,0,0, 0,0,0, :, :]
+            )
+
+    # Vertical recursion for two nonzero indices i.e. V(110|000)
+    # Slice to avoid if statement
+    # Increment a_x:
+    integrals[:-1, 1,1:,0, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 0]*integrals[:-1, 0,1:,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 0]*integrals[1:, 0,1:,0, 0,0,0, :, :]
+    '''
+    integrals[:-1, 1,0,0, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 0]*integrals[:-1, 0,0,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 0]*integrals[1:, 0,0,0, 0,0,0, :, :]
+    # Increment a_y:
+    integrals[:-1, 0,1,0, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 1] * integrals[:-1, 0,0,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 1] * integrals[1:, 0,0,0, 0,0,0, :, :]
+    integrals[:-1, 0,1,0, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 1] * integrals[:-1, 0,0,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 1] * integrals[1:, 0,0,0, 0,0,0, :, :]
+    # Increment a_z
+    integrals[:-1, 0,0,1, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 2] * integrals[:-1, 0,0,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 2] * integrals[1:, 0,0,0, 0,0,0, :, :]
+    integrals[:-1, 0,0,1, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 2] * integrals[:-1, 0,0,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 2] * integrals[1:, 0,0,0, 0,0,0, :, :]
+    '''
 
     return integrals
 
