@@ -289,14 +289,18 @@ def test_compute_one_elec_integrals():
             answer[0, m_max-i,0,i, 0,0,0, 0, 0],
             0.0
         )
-    '''
     # 3-index vertical recursion
-    v0_111_000 = 1/6*answer[0, 0,1,1, 0,0,0, 0,0] - 2/3*answer[0, 1,1,1, 0,0,0, 0,0]
+    v0_111_000 = 1/6*answer[0, 0,1,1, 0,0,0, 0,0] - 2/3*answer[1, 0,1,1, 0,0,0, 0,0]
     assert np.allclose(
         v0_111_000,
         answer[0, 1,1,1, 0,0,0, 0, 0]
     )
-    '''
+    v1_211_000 = 1/6*answer[1, 1,1,1, 0,0,0, 0,0] - 2/3*answer[2, 1,1,1, 0,0,0, 0,0] \
+                 + (answer[1, 0,1,1, 0,0,0, 0,0] - answer[2, 0,1,1, 0,0,0, 0,0])/(2*.12)
+    assert np.allclose(
+        v1_211_000,
+        answer[1, 2,1,1, 0,0,0, 0, 0]
+    )
     # Check values for different contractions
     v0_200_000 = 1/11*answer[0, 1,0,0, 0,0,0, 1,0] - 13/22*answer[1, 1,0,0, 0,0,0, 1,0] \
                  + (answer[0, 0,0,0, 0,0,0, 1,0] - answer[1, 0,0,0, 0,0,0, 1,0])/(2*.11)

@@ -224,6 +224,45 @@ def _compute_one_elec_integrals(
                 integrals[:-a-1, 0,a+1:-a-1,a-1, 0,0,0, :, :] - integrals[1:-a, 0,a+1:-a-1,a-1, 0,0,0, :, :]
         )
 
+    # Vertical recursion for three nonzero indices i.e. V(111|000)
+    # Slice to avoid if statement
+    # For a = 0:
+    integrals[:-2, 1,1:-1,1:-1, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 0]*integrals[:-2, 0,1:-1,1:-1, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 0]*integrals[1:-1, 0,1:-1,1:-1, 0,0,0, :, :]
+    integrals[:-2, 1:-1,1,1:-1, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 1]*integrals[:-2, 1:-1,0,1:-1, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 1]*integrals[1:-1, 1:-1,0,1:-1, 0,0,0, :, :]
+    integrals[:-2, 1:-1,1:-1,1, 0,0,0, :, :] = \
+        rel_coord_a[:, :, 2]*integrals[:-2, 1:-1,1:-1,0, 0,0,0, :, :] \
+        - rel_coord_point[:, :, 2]*integrals[1:-1, 1:-1,1:-1,0, 0,0,0, :, :]
+    # For a > 0:
+    for a in range(1, m_max-1):
+        # Increment a_x for all a_y, a_z:
+        integrals[:-a-1, a+1,a+1:-a-1,a+1:-a-1, 0,0,0, :, :] = \
+            rel_coord_a[:, :, 0]*integrals[:-a-1, a,a+1:-a-1,a+1:-a-1, 0,0,0, :, :] \
+            - rel_coord_point[:, :, 0]*integrals[1:-a, a,a+1:-a-1,a+1:-a-1, 0,0,0, :, :] \
+            + a/(2*exps_sum.squeeze()) * (
+                integrals[:-a-1, a-1,a+1:-a-1,a+1:-a-1, 0,0,0, :, :]
+                - integrals[1:-a, a-1,a+1:-a-1,a+1:-a-1, 0,0,0, :, :]
+        )
+        # Increment a_y for all a_x, a_z:
+        integrals[:-a-1, a+1:-a-1,a+1,a+1:-a-1, 0,0,0, :, :] = \
+            rel_coord_a[:, :, 0]*integrals[:-a-1, a+1:-a-1,a,a+1:-a-1, 0,0,0, :, :] \
+            - rel_coord_point[:, :, 0]*integrals[1:-a, a+1:-a-1,a,a+1:-a-1, 0,0,0, :, :] \
+            + a/(2*exps_sum.squeeze()) * (
+                integrals[:-a-1, a+1:-a-1,a-1,a+1:-a-1, 0,0,0, :, :]
+                - integrals[1:-a, a+1:-a-1,a-1,a+1:-a-1, 0,0,0, :, :]
+        )
+        # Increment a_z for all a_x, a_y:
+        integrals[:-a-1, a+1:-a-1,a+1:-a-1,a+1, 0,0,0, :, :] = \
+            rel_coord_a[:, :, 0]*integrals[:-a-1, a+1:-a-1,a+1:-a-1,a, 0,0,0, :, :] \
+            - rel_coord_point[:, :, 0]*integrals[1:-a, a+1:-a-1,a+1:-a-1,a, 0,0,0, :, :] \
+            + a/(2*exps_sum.squeeze()) * (
+                integrals[:-a-1, a+1:-a-1,a+1:-a-1,a-1, 0,0,0, :, :]
+                - integrals[1:-a, a+1:-a-1,a+1:-a-1,a-1, 0,0,0, :, :]
+        )
+        
     return integrals
 
 
