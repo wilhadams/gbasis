@@ -25,7 +25,7 @@ def test_compute_one_elec_integrals_s_type():
     exps_b = s_type_two.exps
     coeffs_b = s_type_two.coeffs
     norm_b = s_type_two.norm
-    s_test = _compute_one_elec_integrals(
+    vertical, s_test = _compute_one_elec_integrals(
         np.array([0., 0., 0.]),      # coord_point
         coord_a,
         angmom_a,
@@ -44,34 +44,60 @@ def test_compute_one_elec_integrals_s_type():
     v0_000_000 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
     assert np.allclose(
         v0_000_000,
-        s_test[0, 0,0,0, 0,0,0, 0, 0]
+        s_test[0,0,0, 0,0,0]
     )
     v1_000_000 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
     assert np.allclose(
         v1_000_000,
-        s_test[1, 0,0,0, 0,0,0, 0, 0]
+        vertical[1, 0,0,0, 0, 0]
     )
     v2_000_000 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
     assert np.allclose(
         v2_000_000,
-        s_test[2, 0,0,0, 0,0,0, 0, 0]
+        vertical[2, 0,0,0, 0, 0]
+    )
+    v0_200_000 = 1/6*vertical[0, 1,0,0, 0, 0] - 2/3*vertical[1, 1,0,0, 0, 0] \
+                 + (vertical[0, 0,0,0, 0, 0] - vertical[1, 0,0,0, 0, 0])/(2*.12)
+    assert np.allclose(
+        v0_200_000,
+        vertical[0, 2,0,0, 0, 0]
     )
 
     # Check one-index recursion i.e. V(m)(100|000) using recursion
     v1_100_000 = 1/6 * v1_000_000 - 2/3*v2_000_000
     assert np.allclose(
         v1_100_000,
-        s_test[1, 1,0,0, 0,0,0, 0, 0]
+        vertical[1, 1,0,0, 0, 0]
     )
     v1_010_000 = 1/6 * v1_000_000 - 14/12*v2_000_000
     assert np.allclose(
         v1_010_000,
-        s_test[1, 0,1,0, 0,0,0, 0, 0]
+        vertical[1, 0,1,0, 0, 0]
     )
     v1_001_000 = 1/4 * v1_000_000 - 7/4*v2_000_000
     assert np.allclose(
         v1_001_000,
-        s_test[1, 0,0,1, 0,0,0, 0, 0]
+        vertical[1, 0,0,1, 0, 0]
+    )
+    v0_100_000 = 1/6 * v0_000_000 - 2/3*v1_000_000
+    assert np.allclose(
+        v0_100_000,
+        s_test[1,0,0, 0,0,0]
+    )
+    v0_000_100 = v0_100_000 + -1 * v0_000_000
+    assert np.allclose(
+        v0_000_100,
+        s_test[0,0,0, 1,0,0]
+    )
+    v0_100_100 = v0_200_000 + -1 * v0_100_000
+    assert np.allclose(
+        v0_100_100,
+        s_test[1,0,0, 1,0,0]
+    )
+    v0_000_200 = v0_100_100 + -1 * v0_000_100
+    assert np.allclose(
+        v0_000_200,
+        s_test[0,0,0, 2,0,0]
     )
 
 
@@ -95,7 +121,7 @@ def test_compute_one_elec_integrals_l1():
     exps_b = contr_two.exps
     coeffs_b = contr_two.coeffs
     norm_b = contr_two.norm
-    answer = _compute_one_elec_integrals(
+    answer, _ = _compute_one_elec_integrals(
         np.array([0., 0., 0.]),      # coord_point
         coord_a,
         angmom_a,
@@ -114,63 +140,63 @@ def test_compute_one_elec_integrals_l1():
     v0_000_000 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
     assert np.allclose(
         v0_000_000,
-        answer[0, 0,0,0, 0,0,0, 0, 0]
+        answer[0, 0,0,0, 0, 0]
     )
     v1_000_000 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
     assert np.allclose(
         v1_000_000,
-        answer[1, 0,0,0, 0,0,0, 0, 0]
+        answer[1, 0,0,0, 0, 0]
     )
     v2_000_000 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
     assert np.allclose(
         v2_000_000,
-        answer[2, 0,0,0, 0,0,0, 0, 0]
+        answer[2, 0,0,0, 0, 0]
     )
     v1_100_000 = 1/6 * v1_000_000 - 2/3*v2_000_000
     assert np.allclose(
         v1_100_000,
-        answer[1, 1,0,0, 0,0,0, 0, 0]
+        answer[1, 1,0,0, 0, 0]
     )
     v1_010_000 = 1/6 * v1_000_000 - 14/12*v2_000_000
     assert np.allclose(
         v1_010_000,
-        answer[1, 0,1,0, 0,0,0, 0, 0]
+        answer[1, 0,1,0, 0, 0]
     )
     v1_001_000 = 1/4 * v1_000_000 - 7/4*v2_000_000
     assert np.allclose(
         v1_001_000,
-        answer[1, 0,0,1, 0,0,0, 0, 0]
+        answer[1, 0,0,1, 0, 0]
     )
     # Check V(m) for other contractions against hand-calculated values
     v0_000_000 = np.exp(-17/440) * hyp1f1(1/2, 3/2, -2041/4400) / (2 * 0 + 1)
     assert np.allclose(
         v0_000_000,
-        answer[0, 0,0,0, 0,0,0, 1, 0]
+        answer[0, 0,0,0, 1, 0]
     )
     v1_000_000 = np.exp(-17/440) * hyp1f1(1 + 1/2, 1 + 3/2, -2041/4400) / (2 * 1 + 1)
     assert np.allclose(
         v1_000_000,
-        answer[1, 0,0,0, 0,0,0, 1, 0]
+        answer[1, 0,0,0, 1, 0]
     )
     v2_000_000 = np.exp(-17/440) * hyp1f1(2 + 1/2, 2 + 3/2, -2041/4400) / (2 * 2 + 1)
     assert np.allclose(
         v2_000_000,
-        answer[2, 0,0,0, 0,0,0, 1, 0]
+        answer[2, 0,0,0, 1, 0]
     )
     v1_100_000 = 1/11 * v1_000_000 - 13/22*v2_000_000
     assert np.allclose(
         v1_100_000,
-        answer[1, 1,0,0, 0,0,0, 1, 0]
+        answer[1, 1,0,0, 1, 0]
     )
     v1_010_000 = 1/11 * v1_000_000 - 12/11*v2_000_000
     assert np.allclose(
         v1_010_000,
-        answer[1, 0,1,0, 0,0,0, 1, 0]
+        answer[1, 0,1,0, 1, 0]
     )
     v1_001_000 = 3/22 * v1_000_000 - 18/11*v2_000_000
     assert np.allclose(
         v1_001_000,
-        answer[1, 0,0,1, 0,0,0, 1, 0]
+        answer[1, 0,0,1, 1, 0]
     )
 
 
@@ -194,7 +220,7 @@ def test_compute_one_elec_integrals():
     exps_b = contr_two.exps
     coeffs_b = contr_two.coeffs
     norm_b = contr_two.norm
-    answer = _compute_one_elec_integrals(
+    answer, _ = _compute_one_elec_integrals(
         np.array([0., 0., 0.]),      # coord_point
         coord_a,
         angmom_a,
@@ -213,122 +239,122 @@ def test_compute_one_elec_integrals():
     v0_000_000 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
     assert np.allclose(
         v0_000_000,
-        answer[0, 0,0,0, 0,0,0, 0, 0]
+        answer[0, 0,0,0, 0, 0]
     )
     v1_000_000 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
     assert np.allclose(
         v1_000_000,
-        answer[1, 0,0,0, 0,0,0, 0, 0]
+        answer[1, 0,0,0, 0, 0]
     )
     v2_000_000 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
     assert np.allclose(
         v2_000_000,
-        answer[2, 0,0,0, 0,0,0, 0, 0]
+        answer[2, 0,0,0, 0, 0]
     )
     # 1-index vertical recursion
-    v0_200_000 = 1/6*answer[0, 1,0,0, 0,0,0, 0,0] - 2/3*answer[1, 1,0,0, 0,0,0, 0,0] \
-                 + (answer[0, 0,0,0, 0,0,0, 0,0] - answer[1, 0,0,0, 0,0,0, 0,0])/(2*.12)
+    v0_200_000 = 1/6*answer[0, 1,0,0, 0, 0] - 2/3*answer[1, 1,0,0, 0, 0] \
+                 + (answer[0, 0,0,0, 0, 0] - answer[1, 0,0,0, 0, 0])/(2*.12)
     assert np.allclose(
         v0_200_000,
-        answer[0, 2,0,0, 0,0,0, 0, 0]
+        answer[0, 2,0,0, 0, 0]
     )
     # 2-index vertical recursion
-    v0_110_000 = 1/6*answer[0, 0,1,0, 0,0,0, 0,0] - 2/3*answer[1, 0,1,0, 0,0,0, 0,0]
+    v0_110_000 = 1/6*answer[0, 0,1,0, 0, 0] - 2/3*answer[1, 0,1,0, 0, 0]
     assert np.allclose(
         v0_110_000,
-        answer[0, 1,1,0, 0,0,0, 0, 0]
+        answer[0, 1,1,0, 0, 0]
     )
-    v0_210_000 = 1/6*answer[0, 1,1,0, 0,0,0, 0,0] - 2/3*answer[1, 1,1,0, 0,0,0, 0,0] \
-                 + (answer[0, 0,1,0, 0,0,0, 0,0] - answer[1, 0,1,0, 0,0,0, 0,0])/(2*.12)
+    v0_210_000 = 1/6*answer[0, 1,1,0, 0, 0] - 2/3*answer[1, 1,1,0, 0, 0] \
+                 + (answer[0, 0,1,0, 0, 0] - answer[1, 0,1,0, 0, 0])/(2*.12)
     assert np.allclose(
         v0_210_000,
-        answer[0, 2,1,0, 0,0,0, 0, 0]
+        answer[0, 2,1,0, 0, 0]
     )
-    v0_310_000 = 1/6*answer[0, 2,1,0, 0,0,0, 0,0] - 2/3*answer[1, 2,1,0, 0,0,0, 0,0] \
-                 + (answer[0, 1,1,0, 0,0,0, 0,0] - answer[1, 1,1,0, 0,0,0, 0,0])*2/(2*.12)
+    v0_310_000 = 1/6*answer[0, 2,1,0, 0, 0] - 2/3*answer[1, 2,1,0, 0, 0] \
+                 + (answer[0, 1,1,0, 0, 0] - answer[1, 1,1,0, 0, 0])*2/(2*.12)
     assert np.allclose(
         v0_310_000,
-        answer[0, 3,1,0, 0,0,0, 0, 0]
+        answer[0, 3,1,0, 0, 0]
     )
-    v0_220_000 = 1/6*answer[0, 1,2,0, 0,0,0, 0,0] - 2/3*answer[1, 1,2,0, 0,0,0, 0,0] \
-                 + (answer[0, 0,2,0, 0,0,0, 0,0] - answer[1, 0,2,0, 0,0,0, 0,0])/(2*.12)
+    v0_220_000 = 1/6*answer[0, 1,2,0, 0, 0] - 2/3*answer[1, 1,2,0, 0, 0] \
+                 + (answer[0, 0,2,0, 0, 0] - answer[1, 0,2,0, 0, 0])/(2*.12)
     assert np.allclose(
         v0_220_000,
-        answer[0, 2,2,0, 0,0,0, 0, 0]
+        answer[0, 2,2,0, 0, 0]
     )
-    v0_022_000 = 0.25*answer[0, 0,2,1, 0,0,0, 0,0] - 1.75*answer[1, 0,2,1, 0,0,0, 0,0] \
-                 + (answer[0, 0,2,0, 0,0,0, 0,0] - answer[1, 0,2,0, 0,0,0, 0,0])/(2*.12)
+    v0_022_000 = 0.25*answer[0, 0,2,1, 0, 0] - 1.75*answer[1, 0,2,1, 0, 0] \
+                 + (answer[0, 0,2,0, 0, 0] - answer[1, 0,2,0, 0, 0])/(2*.12)
     assert np.allclose(
         v0_022_000,
-        answer[0, 0,2,2, 0,0,0, 0, 0]
+        answer[0, 0,2,2, 0, 0]
     )
     # Check for no out-of-bounds assignments
     m_max = angmom_a + angmom_b + 1
     for i in range(1, m_max-1):
         assert np.allclose(
-            answer[0, i,m_max-i,0, 0,0,0, 0, 0],
+            answer[0, i,m_max-i,0, 0, 0],
             0.0
         )
         assert np.allclose(
-            answer[0, m_max-i,i,0, 0,0,0, 0, 0],
+            answer[0, m_max-i,i,0, 0, 0],
             0.0
         )
         assert np.allclose(
-            answer[0, 0,i,m_max-i, 0,0,0, 0, 0],
+            answer[0, 0,i,m_max-i, 0, 0],
             0,0
         )
         assert np.allclose(
-            answer[0, 0,m_max-i,i, 0,0,0, 0, 0],
+            answer[0, 0,m_max-i,i, 0, 0],
             0.0
         )
         assert np.allclose(
-            answer[0, i,0,m_max-i, 0,0,0, 0, 0],
+            answer[0, i,0,m_max-i, 0, 0],
             0.0
         )
         assert np.allclose(
-            answer[0, m_max-i,0,i, 0,0,0, 0, 0],
+            answer[0, m_max-i,0,i, 0, 0],
             0.0
         )
     # 3-index vertical recursion
-    v0_111_000 = 1/6*answer[0, 0,1,1, 0,0,0, 0,0] - 2/3*answer[1, 0,1,1, 0,0,0, 0,0]
+    v0_111_000 = 1/6*answer[0, 0,1,1, 0, 0] - 2/3*answer[1, 0,1,1, 0, 0]
     assert np.allclose(
         v0_111_000,
-        answer[0, 1,1,1, 0,0,0, 0, 0]
+        answer[0, 1,1,1, 0, 0]
     )
-    v1_211_000 = 1/6*answer[1, 1,1,1, 0,0,0, 0,0] - 2/3*answer[2, 1,1,1, 0,0,0, 0,0] \
-                 + (answer[1, 0,1,1, 0,0,0, 0,0] - answer[2, 0,1,1, 0,0,0, 0,0])/(2*.12)
+    v1_211_000 = 1/6*answer[1, 1,1,1, 0, 0] - 2/3*answer[2, 1,1,1, 0, 0] \
+                 + (answer[1, 0,1,1, 0, 0] - answer[2, 0,1,1, 0, 0])/(2*.12)
     assert np.allclose(
         v1_211_000,
-        answer[1, 2,1,1, 0,0,0, 0, 0]
+        answer[1, 2,1,1, 0, 0]
     )
     # Check values for different contractions
-    v0_200_000 = 1/11*answer[0, 1,0,0, 0,0,0, 1,0] - 13/22*answer[1, 1,0,0, 0,0,0, 1,0] \
-                 + (answer[0, 0,0,0, 0,0,0, 1,0] - answer[1, 0,0,0, 0,0,0, 1,0])/(2*.11)
+    v0_200_000 = 1/11*answer[0, 1,0,0, 1, 0] - 13/22*answer[1, 1,0,0, 1, 0] \
+                 + (answer[0, 0,0,0, 1, 0] - answer[1, 0,0,0, 1, 0])/(2*.11)
     assert np.allclose(
         v0_200_000,
-        answer[0, 2,0,0, 0,0,0, 1, 0]
+        answer[0, 2,0,0, 1, 0]
     )
-    v0_020_000 = 1/11*answer[0, 0,1,0, 0,0,0, 1,0] - 12/11*answer[1, 0,1,0, 0,0,0, 1,0] \
-                 + (answer[0, 0,0,0, 0,0,0, 1,0] - answer[1, 0,0,0, 0,0,0, 1,0])/(2*.11)
+    v0_020_000 = 1/11*answer[0, 0,1,0, 1, 0] - 12/11*answer[1, 0,1,0, 1, 0] \
+                 + (answer[0, 0,0,0, 1, 0] - answer[1, 0,0,0, 1, 0])/(2*.11)
     assert np.allclose(
         v0_020_000,
-        answer[0, 0,2,0, 0,0,0, 1, 0]
+        answer[0, 0,2,0, 1, 0]
     )
-    v0_002_000 = 3/22*answer[0, 0,0,1, 0,0,0, 1,0] - 18/11*answer[1, 0,0,1, 0,0,0, 1,0] \
-                 + (answer[0, 0,0,0, 0,0,0, 1,0] - answer[1, 0,0,0, 0,0,0, 1,0])/(2*.11)
+    v0_002_000 = 3/22*answer[0, 0,0,1, 1, 0] - 18/11*answer[1, 0,0,1, 1, 0] \
+                 + (answer[0, 0,0,0, 1, 0] - answer[1, 0,0,0, 1, 0])/(2*.11)
     assert np.allclose(
         v0_002_000,
-        answer[0, 0,0,2, 0,0,0, 1, 0]
+        answer[0, 0,0,2, 1, 0]
     )
 
 
 def test_compute_one_elec_integrals_speed():
     import time
     contr_one = ContractedCartesianGaussians(
-        5, np.array([0.5, 1, 1.5]), 0, np.random.random_sample((10,)), np.random.random_sample((10,))
+        5, np.array([0.5, 1, 1.5]), 0, np.random.random_sample((100,)), np.random.random_sample((100,))
     )
     contr_two = ContractedCartesianGaussians(
-        5, np.array([1.5, 2, 3]), 0, np.random.random_sample((10,)), np.random.random_sample((10,))
+        5, np.array([1.5, 2, 3]), 0, np.random.random_sample((100,)), np.random.random_sample((100,))
     )
     t0 = time.time()
     coord_a = contr_one.coord
@@ -343,7 +369,7 @@ def test_compute_one_elec_integrals_speed():
     exps_b = contr_two.exps
     coeffs_b = contr_two.coeffs
     norm_b = contr_two.norm
-    answer = _compute_one_elec_integrals(
+    answer, ints = _compute_one_elec_integrals(
         np.array([0., 0., 0.]),      # coord_point
         coord_a,
         angmom_a,
@@ -360,4 +386,5 @@ def test_compute_one_elec_integrals_speed():
     )
     t1 = time.time()
     print("{} sec".format(t1-t0))
+    print(answer.size, ints.size)
 

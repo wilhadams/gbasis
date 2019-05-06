@@ -62,6 +62,8 @@ def _compute_one_elec_integrals(
 
     """
     # TODO: Overlap screening
+
+    # TODO: Enforce K_a >= K_b, l_a > l_b
     
     m_max = angmom_a + angmom_b + 1
 
@@ -275,17 +277,9 @@ def _compute_one_elec_integrals(
 
     # delete temp?
 
+    # FIXME: The slicing has lots of extra transfers that aren't necessary due to weird slicing.
     # Horizontal recursion for one nonzero index i.e. V(120|100)
-    # Slice to avoid if statement
-    # For b = 0:
-    # Increment b_x
-    integrals[:-1,:,:, 1,0,0] = integrals[1:,:,:, 0,0,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, 0,0,0]
-    # Increment b_y
-    integrals[:,:-1,:, 0,1,0] = integrals[:,1:,:, 0,0,0] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,0,0]
-    # Increment b_z
-    integrals[:,:,:-1, 0,0,1] = integrals[:,:,1:, 0,0,0] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,0,0]
-    # For b > 0:
-    for b in range(1, m_max-1):
+    for b in range(0, m_max-1):
         # Increment b_x
         integrals[:-1,:,:, b+1,0,0] = integrals[1:,:,:, b,0,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,0,0]
         # Increment b_y
@@ -294,22 +288,7 @@ def _compute_one_elec_integrals(
         integrals[:,:,:-1, 0,0,b+1] = integrals[:,:,1:, 0,0,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,0,b]
 
     # Horizontal recursion for two nonzero indices
-    # Slice to avoid if statement
-    # For b = 0:
-    # Increment b_x for all b_y
-    integrals[:-1,:,:, 1,1:-1,0] = integrals[1:,:,:, 0,1:-1,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, 0,1:-1,0]
-    # Increment b_x for all b_z
-    integrals[:-1,:,:, 1,0,1:-1] = integrals[1:,:,:, 0,0,1:-1] + rel_dist[:, :, 0]*integrals[:-1,:,:, 0,0,1:-1]
-    # Increment b_y for all b_x
-    integrals[:,:-1,:, 1:-1,1,0] = integrals[:,1:,:, 1:-1,0,0] + rel_dist[:, :, 1]*integrals[:,:-1,:, 1:-1,0,0]
-    # Increment b_y for all b_z
-    integrals[:,:-1,:, 0,1,1:-1] = integrals[:,1:,:, 0,0,1:-1] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,0,1:-1]
-    # Increment b_z for all b_x
-    integrals[:,:,:-1, 1:-1,0,1] = integrals[:,:,1:, 1:-1,0,0] + rel_dist[:, :, 2]*integrals[:,:,:-1, 1:-1,0,0]
-    # Increment b_z for all b_y
-    integrals[:,:,:-1, 0,1:-1,1] = integrals[:,:,1:, 0,1:-1,0] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,1:-1,0]
-    # For b > 0:
-    for b in range(1, m_max-1):
+    for b in range(0, m_max-1):
         # Increment b_x for all b_y
         integrals[:-1,:,:, b+1,b+1:-b-1,0] =\
             integrals[1:,:,:, b,b+1:-b-1,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,b+1:-b-1,0]
@@ -328,6 +307,15 @@ def _compute_one_elec_integrals(
         # Increment b_z for all b_y
         integrals[:,:,:-1, 0,b+1:-b-1,b+1] =\
             integrals[:,:,1:, 0,b+1:-b-1,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,b+1:-b-1,b]
+        
+    # Horizontal recursion for three nonzero indices
+    for b in range(0, m_max-1):
+        integrals[:-2,:,:, b+1,b+1:-b-1,b+1:-b-1] =\
+            integrals[1:-1,:,:, b,b+1:-b-1,b+1:-b-1] + rel_dist[:, :, 0]*integrals[:-2,:,:, b,b+1:-b-1,b+1:-b-1]
+        integrals[:-2,:,:, b+1:-b-1,b+1,b+1:-b-1] =\
+            integrals[1:-1,:,:, b+1:-b-1,b,b+1:-b-1] + rel_dist[:, :, 1]*integrals[:-2,:,:, b+1:-b-1,b,b+1:-b-1]
+        integrals[:-2,:,:, b+1:-b-1,b+1:-b-1,b+1] =\
+            integrals[1:-1,:,:, b+1:-b-1,b+1:-b-1,b] + rel_dist[:, :, 2]*integrals[:-2,:,:, b+1:-b-1,b+1:-b-1,b]
 
     # TODO: return integrals not temp; fix tests to fit final shape
     return temp, integrals
