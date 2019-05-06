@@ -66,16 +66,14 @@ def _compute_one_elec_integrals(
     m_max = angmom_a + angmom_b + 1
 
     # NOTE: Ordering convention for vertical recursion of integrals
-    # axis 0 : l (size: m_max)
+    # axis 0 : m (size: m_max)
     # axis 1 : a_x (size: m_max)
     # axis 2 : a_y (size: m_max)
     # axis 3 : a_z (size: m_max)
     # axis 4 : primitive of contraction b (size: K_b)
     # axis 5 : primitive of contraction a (size: K_a)
 
-    integrals = np.zeros(
-        (m_max, m_max,m_max,m_max, exps_b.size, exps_a.size)
-    )
+    integrals = np.zeros((m_max, m_max,m_max,m_max, exps_b.size, exps_a.size))
 
     # Adjust axes for pre-work
     # axis 0 : primitive of contraction b (size: K_b)
@@ -259,8 +257,42 @@ def _compute_one_elec_integrals(
                 integrals[:-a-1, a+1:-a-1,a+1:-a-1,a-1, :, :]
                 - integrals[1:-a, a+1:-a-1,a+1:-a-1,a-1, :, :]
         )
-        
-    return integrals
+    
+    # Expand the integral array using contracted basis functions (with m = 0):
+    # NOTE: Ordering convention for horizontal recursion of integrals
+    # axis 0 : a_x (size: m_max)
+    # axis 1 : a_y (size: m_max)
+    # axis 2 : a_z (size: m_max)
+    # axis 3 : b_x (size: m_max)
+    # axis 4 : b_y (size: m_max)
+    # axis 5 : b_z (size: m_max)
+
+    temp = integrals.copy()
+
+    # Contract basis functions
+    integrals = np.zeros((m_max,m_max,m_max, m_max,m_max,m_max))
+    integrals[:,:,:, 0,0,0] = np.sum(temp, axis=(4,5))[0, :,:,:]
+
+    # delete temp?
+
+    # Horizontal recursion for one nonzero index i.e. V(120|100)
+    # Slice to avoid if statement
+    # For b = 0:
+    # Increment b_x
+    integrals[:-1,:,:, 1,0,0] = integrals[1:,:,:, 0,0,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, 0,0,0]
+    # Increment b_y
+    integrals[:,:-1,:, 0,1,0] = integrals[:,1:,:, 0,0,0] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,0,0]
+    # Increment b_z
+    integrals[:,:,:-1, 0,0,1] = integrals[:,:,1:, 0,0,0] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,0,0]
+    # For b > 0:
+    for b in range(1, m_max-1):
+        # Increment b_x
+        integrals[:-1,:,:, b+1,0,0] = integrals[1:,:,:, b,0,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,0,0]
+        # Increment b_y
+        integrals[:,:-1,:, 0,b+1,0] = integrals[:,1:,:, 0,b,0] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,b,0]
+        # Increment b_z
+        integrals[:,:,:-1, 0,0,b+1] = integrals[:,:,1:, 0,0,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,0,b]
+
 
 
 
