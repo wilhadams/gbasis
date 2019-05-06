@@ -293,6 +293,44 @@ def _compute_one_elec_integrals(
         # Increment b_z
         integrals[:,:,:-1, 0,0,b+1] = integrals[:,:,1:, 0,0,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,0,b]
 
+    # Horizontal recursion for two nonzero indices
+    # Slice to avoid if statement
+    # For b = 0:
+    # Increment b_x for all b_y
+    integrals[:-1,:,:, 1,1:-1,0] = integrals[1:,:,:, 0,1:-1,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, 0,1:-1,0]
+    # Increment b_x for all b_z
+    integrals[:-1,:,:, 1,0,1:-1] = integrals[1:,:,:, 0,0,1:-1] + rel_dist[:, :, 0]*integrals[:-1,:,:, 0,0,1:-1]
+    # Increment b_y for all b_x
+    integrals[:,:-1,:, 1:-1,1,0] = integrals[:,1:,:, 1:-1,0,0] + rel_dist[:, :, 1]*integrals[:,:-1,:, 1:-1,0,0]
+    # Increment b_y for all b_z
+    integrals[:,:-1,:, 0,1,1:-1] = integrals[:,1:,:, 0,0,1:-1] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,0,1:-1]
+    # Increment b_z for all b_x
+    integrals[:,:,:-1, 1:-1,0,1] = integrals[:,:,1:, 1:-1,0,0] + rel_dist[:, :, 2]*integrals[:,:,:-1, 1:-1,0,0]
+    # Increment b_z for all b_y
+    integrals[:,:,:-1, 0,1:-1,1] = integrals[:,:,1:, 0,1:-1,0] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,1:-1,0]
+    # For b > 0:
+    for b in range(1, m_max-1):
+        # Increment b_x for all b_y
+        integrals[:-1,:,:, b+1,b+1:-b-1,0] =\
+            integrals[1:,:,:, b,b+1:-b-1,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,b+1:-b-1,0]
+        # Increment b_x for all b_z
+        integrals[:-1,:,:, b+1,0,b+1:-b-1] =\
+            integrals[1:,:,:, b,0,b+1:-b-1] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,0,b+1:-b-1]
+        # Increment b_y for all b_x
+        integrals[:,:-1,:, b+1:-b-1,b+1,0] =\
+            integrals[:,1:,:, b+1:-b-1,b,0] + rel_dist[:, :, 1]*integrals[:,:-1,:, b+1:-b-1,b,0]
+        # Increment b_y for all b_z
+        integrals[:,:-1,:, 0,b+1,b+1:-b-1] =\
+            integrals[:,1:,:, 0,b,b+1:-b-1] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,b,b+1:-b-1]
+        # Increment b_z for all b_x
+        integrals[:,:,:-1, b+1:-b-1,0,b+1] =\
+            integrals[:,:,1:, b+1:-b-1,0,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, b+1:-b-1,0,b]
+        # Increment b_z for all b_y
+        integrals[:,:,:-1, 0,b+1:-b-1,b+1] =\
+            integrals[:,:,1:, 0,b+1:-b-1,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,b+1:-b-1,b]
+
+    # TODO: return integrals not temp; fix tests to fit final shape
+    return temp, integrals
 
 
 
