@@ -277,9 +277,8 @@ def _compute_one_elec_integrals(
 
     # delete temp?
 
-    # FIXME: The slicing has lots of extra transfers that aren't necessary due to weird slicing.
     # Horizontal recursion for one nonzero index i.e. V(120|100)
-    for b in range(0, m_max-1):
+    for b in range(0, angmom_b):
         # Increment b_x
         integrals[:-1,:,:, b+1,0,0] = integrals[1:,:,:, b,0,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,0,0]
         # Increment b_y
@@ -288,7 +287,7 @@ def _compute_one_elec_integrals(
         integrals[:,:,:-1, 0,0,b+1] = integrals[:,:,1:, 0,0,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,0,b]
 
     # Horizontal recursion for two nonzero indices
-    for b in range(0, m_max-1):
+    for b in range(0, angmom_b):
         # Increment b_x for all b_y
         integrals[:-1,:,:, b+1,b+1:-b-1,0] =\
             integrals[1:,:,:, b,b+1:-b-1,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,b+1:-b-1,0]
@@ -309,7 +308,7 @@ def _compute_one_elec_integrals(
             integrals[:,:,1:, 0,b+1:-b-1,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,b+1:-b-1,b]
         
     # Horizontal recursion for three nonzero indices
-    for b in range(0, m_max-1):
+    for b in range(0, angmom_b):
         integrals[:-2,:,:, b+1,b+1:-b-1,b+1:-b-1] =\
             integrals[1:-1,:,:, b,b+1:-b-1,b+1:-b-1] + rel_dist[:, :, 0]*integrals[:-2,:,:, b,b+1:-b-1,b+1:-b-1]
         integrals[:-2,:,:, b+1:-b-1,b+1,b+1:-b-1] =\

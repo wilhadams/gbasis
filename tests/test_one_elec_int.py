@@ -40,68 +40,61 @@ def test_compute_one_elec_integrals_s_type():
         coeffs_b,
         norm_b,
     )
-    # Check V(m)(000|000) from hand-calculated values.
-    v0_000_000 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
-    assert np.allclose(
-        v0_000_000,
-        s_test[0,0,0, 0,0,0]
-    )
-    v1_000_000 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
-    assert np.allclose(
-        v1_000_000,
-        vertical[1, 0,0,0, 0, 0]
-    )
-    v2_000_000 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
-    assert np.allclose(
-        v2_000_000,
-        vertical[2, 0,0,0, 0, 0]
-    )
-    v0_200_000 = 1/6*vertical[0, 1,0,0, 0, 0] - 2/3*vertical[1, 1,0,0, 0, 0] \
-                 + (vertical[0, 0,0,0, 0, 0] - vertical[1, 0,0,0, 0, 0])/(2*.12)
-    assert np.allclose(
-        v0_200_000,
-        vertical[0, 2,0,0, 0, 0]
-    )
+    # Test output array using hand-calculated values
+    p = 0.12
+    x_pa = 1/6
+    y_pa = 1/6
+    z_pa = 1/4
+    x_ab = -1
+    y_ab = -1
+    z_ab = -1.5
+    x_pc = 2/3
+    y_pc = 14/12
+    z_pc = 7/4
 
-    # Check one-index recursion i.e. V(m)(100|000) using recursion
-    v1_100_000 = 1/6 * v1_000_000 - 2/3*v2_000_000
+    v0 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
+    v1 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
+    v2 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
+
     assert np.allclose(
-        v1_100_000,
-        vertical[1, 1,0,0, 0, 0]
+        s_test[1,0,0, 1,0,0],
+        ((x_pa + x_ab)*x_pa + 1/(2*p))*v0 - (x_pc * (2*x_pa + x_ab) + 1/(2*p))*v1 + x_pc**2*v2
     )
-    v1_010_000 = 1/6 * v1_000_000 - 14/12*v2_000_000
     assert np.allclose(
-        v1_010_000,
-        vertical[1, 0,1,0, 0, 0]
+        s_test[1,0,0, 0,1,0],
+        ((y_pa + y_ab)*x_pa)*v0 - (x_pc*(y_pa + y_ab) + y_pc * x_pa)*v1 +y_pc*x_pc*v2
     )
-    v1_001_000 = 1/4 * v1_000_000 - 7/4*v2_000_000
     assert np.allclose(
-        v1_001_000,
-        vertical[1, 0,0,1, 0, 0]
+        s_test[1,0,0, 0,0,1],
+        ((z_pa + z_ab)*x_pa)*v0 - (x_pc*(z_pa + z_ab) + z_pc * x_pa)*v1 +z_pc*x_pc*v2
     )
-    v0_100_000 = 1/6 * v0_000_000 - 2/3*v1_000_000
     assert np.allclose(
-        v0_100_000,
-        s_test[1,0,0, 0,0,0]
+        s_test[0,1,0, 1,0,0],
+        ((x_pa + x_ab)*y_pa)*v0 - (y_pc*(x_pa + x_ab) + x_pc * y_pa)*v1 +x_pc*y_pc*v2
     )
-    v0_000_100 = v0_100_000 + -1 * v0_000_000
     assert np.allclose(
-        v0_000_100,
-        s_test[0,0,0, 1,0,0]
+        s_test[0,1,0, 0,1,0],
+        ((y_pa + y_ab)*y_pa + 1/(2*p))*v0 - (y_pc * (2*y_pa + y_ab) + 1/(2*p))*v1 + y_pc**2*v2
     )
-    v0_100_100 = v0_200_000 + -1 * v0_100_000
     assert np.allclose(
-        v0_100_100,
-        s_test[1,0,0, 1,0,0]
+        s_test[0,1,0, 0,0,1],
+        ((z_pa + z_ab)*y_pa)*v0 - (y_pc*(z_pa + z_ab) + z_pc * y_pa)*v1 +z_pc*y_pc*v2
     )
-    v0_000_200 = v0_100_100 + -1 * v0_000_100
     assert np.allclose(
-        v0_000_200,
-        s_test[0,0,0, 2,0,0]
+        s_test[0,0,1, 1,0,0],
+        ((x_pa + x_ab)*z_pa)*v0 - (z_pc*(x_pa + x_ab) + x_pc * z_pa)*v1 +x_pc*z_pc*v2
+    )
+    assert np.allclose(
+        s_test[0,0,1, 0,1,0],
+        ((y_pa + y_ab)*z_pa)*v0 - (z_pc*(y_pa + y_ab) + y_pc * z_pa)*v1 +y_pc*z_pc*v2
+    )
+    assert np.allclose(
+        s_test[0,0,1, 0,0,1],
+        ((z_pa + z_ab)*z_pa + 1/(2*p))*v0 - (z_pc * (2*z_pa + z_ab) + 1/(2*p))*v1 + z_pc**2*v2
     )
 
 
-def test_compute_one_elec_integrals_l1():
+def test_compute_one_elec_integrals_multiple_contractions():
     # ContractedCartesianGaussians(angmom, coord, charge, coeffs, exps)
     contr_one = ContractedCartesianGaussians(
         1, np.array([0.5, 1, 1.5]), 0, np.array([1.0, 2.0]), np.array([0.1, 0.25])
@@ -121,7 +114,7 @@ def test_compute_one_elec_integrals_l1():
     exps_b = contr_two.exps
     coeffs_b = contr_two.coeffs
     norm_b = contr_two.norm
-    answer, _ = _compute_one_elec_integrals(
+    _, answer = _compute_one_elec_integrals(
         np.array([0., 0., 0.]),      # coord_point
         coord_a,
         angmom_a,
@@ -136,67 +129,42 @@ def test_compute_one_elec_integrals_l1():
         coeffs_b,
         norm_b,
     )
-    # Check V(m)(000|000) from hand-calculated values for known s-type values above.
-    v0_000_000 = np.exp(-17/240) * hyp1f1(1/2, 3/2, -701/1200)
+    # Test output array using hand-calculated values
     assert np.allclose(
-        v0_000_000,
-        answer[0, 0,0,0, 0, 0]
+        answer[1,0,0, 1,0,0],
+        7.258756024640786
     )
-    v1_000_000 = np.exp(-17 / 240) * hyp1f1(1 + 1 / 2, 1 + 3 / 2, -701 / 1200) / (2 * 1 + 1)
     assert np.allclose(
-        v1_000_000,
-        answer[1, 0,0,0, 0, 0]
+        answer[1,0,0, 0,1,0],
+        0.3935509112002377
     )
-    v2_000_000 = np.exp(-17 / 240) * hyp1f1(2 + 1 / 2, 2 + 3 / 2, -701 / 1200) / (2 * 2 + 1)
     assert np.allclose(
-        v2_000_000,
-        answer[2, 0,0,0, 0, 0]
+        answer[1,0,0, 0,0,1],
+        0.5903263668003566
     )
-    v1_100_000 = 1/6 * v1_000_000 - 2/3*v2_000_000
     assert np.allclose(
-        v1_100_000,
-        answer[1, 1,0,0, 0, 0]
+        answer[0,1,0, 1,0,0],
+        0.8011389907992242
     )
-    v1_010_000 = 1/6 * v1_000_000 - 14/12*v2_000_000
     assert np.allclose(
-        v1_010_000,
-        answer[1, 0,1,0, 0, 0]
+        answer[0,1,0, 0,1,0],
+        7.9660417017469225
     )
-    v1_001_000 = 1/4 * v1_000_000 - 7/4*v2_000_000
     assert np.allclose(
-        v1_001_000,
-        answer[1, 0,0,1, 0, 0]
+        answer[0,1,0, 0,0,1],
+        1.5101741036607446
     )
-    # Check V(m) for other contractions against hand-calculated values
-    v0_000_000 = np.exp(-17/440) * hyp1f1(1/2, 3/2, -2041/4400) / (2 * 0 + 1)
     assert np.allclose(
-        v0_000_000,
-        answer[0, 0,0,0, 1, 0]
+        answer[0,0,1, 1,0,0],
+        1.2017084861988365
     )
-    v1_000_000 = np.exp(-17/440) * hyp1f1(1 + 1/2, 1 + 3/2, -2041/4400) / (2 * 1 + 1)
     assert np.allclose(
-        v1_000_000,
-        answer[1, 0,0,0, 1, 0]
+        answer[0,0,1, 0,1,0],
+        1.5101741036607443
     )
-    v2_000_000 = np.exp(-17/440) * hyp1f1(2 + 1/2, 2 + 3/2, -2041/4400) / (2 * 2 + 1)
     assert np.allclose(
-        v2_000_000,
-        answer[2, 0,0,0, 1, 0]
-    )
-    v1_100_000 = 1/11 * v1_000_000 - 13/22*v2_000_000
-    assert np.allclose(
-        v1_100_000,
-        answer[1, 1,0,0, 1, 0]
-    )
-    v1_010_000 = 1/11 * v1_000_000 - 12/11*v2_000_000
-    assert np.allclose(
-        v1_010_000,
-        answer[1, 0,1,0, 1, 0]
-    )
-    v1_001_000 = 3/22 * v1_000_000 - 18/11*v2_000_000
-    assert np.allclose(
-        v1_001_000,
-        answer[1, 0,0,1, 1, 0]
+        answer[0,0,1, 0,0,1],
+        9.224520121464211
     )
 
 
@@ -220,7 +188,7 @@ def test_compute_one_elec_integrals():
     exps_b = contr_two.exps
     coeffs_b = contr_two.coeffs
     norm_b = contr_two.norm
-    answer, _ = _compute_one_elec_integrals(
+    answer, output = _compute_one_elec_integrals(
         np.array([0., 0., 0.]),      # coord_point
         coord_a,
         angmom_a,
