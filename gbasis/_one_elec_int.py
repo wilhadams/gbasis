@@ -7,16 +7,12 @@ def _compute_one_elec_integrals(
     coord_point,
     coord_a,
     angmom_a,
-    angmoms_a,
     exps_a,
     coeffs_a,
-    norm_a,
     coord_b,
     angmom_b,
-    angmoms_b,
     exps_b,
     coeffs_b,
-    norm_b,
 ):
     """Return the one-electron integrals for a point charge interaction.
 
@@ -26,44 +22,24 @@ def _compute_one_elec_integrals(
             Center of the point charge?
     coord_a : np.ndarray(3,)
         Center of the contraction on the left side.
-    angmoms_a : np.ndarray(L_a, 3)
-        Angular momentum vectors (lx, ly, lz) for the contractions on the left side.
-        Note that a two dimensional array must be given, even if there is only one angular momentum
-        vector.
+    angmom_a : int
+        Angular momentum of the contraction on the left side.
     exps_a : np.ndarray(K_a,)
         Values of the (square root of the) precisions of the primitives on the left side.
-    coeffs_a : np.ndarray(K_a, M_a)
-        Contraction coefficients of the primitives on the left side.
-        The coefficients always correspond to generalized contractions, i.e. two-dimensional array
-        where the first index corresponds to the primitive and the second index corresponds to the
-        contraction (with the same exponents and angular momentum).
-    norm_a : np.ndarray(L_a, K_a)
-        Normalization constants for the primitives in each contraction on the left side.
     coord_b : np.ndarray(3,)
         Center of the contraction on the right side.
-    angmoms_b : np.ndarray(L_b, 3)
-        Angular momentum vectors (lx, ly, lz) for the contractions on the right side.
-        Note that a two dimensional array must be given, even if there is only one angular momentum
-        vector.
+    angmom_b : int
+        Angular momentum of the contraction on the right side.
     exps_b : np.ndarray(K_b,)
         Values of the (square root of the) precisions of the primitives on the right side.
-    coeffs_b : np.ndarray(K_b, M_b)
-        Contraction coefficients of the primitives on the right side.
-        The coefficients always correspond to generalized contractions, i.e. two-dimensional array
-        where the first index corresponds to the primitive and the second index corresponds to the
-        contraction (with the same exponents and angular momentum).
-    norm_b : np.ndarray(L_b, K_b)
-        Normalization constants for the primitives in each contraction on the right side.
 
     # FIXME: finish docstring
     Returns
     -------
-    integrals :
+    integrals : np.ndarray(L_a + L_b + 1, L_a + L_b + 1, L_a + L_b + 1, L_b + 1, L_b + 1, L_b + 1)
+
 
     """
-    # TODO: Overlap screening
-
-    # TODO: Enforce K_a >= K_b, l_a > l_b
     
     m_max = angmom_a + angmom_b + 1
 
@@ -86,6 +62,10 @@ def _compute_one_elec_integrals(
     coord_b = coord_b[np.newaxis, np.newaxis, :]
     exps_a = exps_a[np.newaxis, :, np.newaxis]
     exps_b = exps_b[:, np.newaxis, np.newaxis]
+    coeffs_a = coeffs_a[np.newaxis, :]
+    coeffs_b = coeffs_b[:, np.newaxis]
+    coeffs = (coeffs_a * coeffs_b).squeeze(axis=-1)
+
 
     # sum of the exponents
     exps_sum = exps_a + exps_b
@@ -265,17 +245,14 @@ def _compute_one_elec_integrals(
     # axis 0 : a_x (size: m_max)
     # axis 1 : a_y (size: m_max)
     # axis 2 : a_z (size: m_max)
-    # axis 3 : b_x (size: m_max)
-    # axis 4 : b_y (size: m_max)
-    # axis 5 : b_z (size: m_max)
-
-    temp = integrals.copy()
+    # axis 3 : b_x (size: angmom_b + 1)
+    # axis 4 : b_y (size: angmom_b + 1)
+    # axis 5 : b_z (size: angmom_b + 1)
 
     # Contract basis functions
-    integrals = np.zeros((m_max,m_max,m_max, m_max,m_max,m_max))
-    integrals[:,:,:, 0,0,0] = np.sum(temp, axis=(4,5))[0, :,:,:]
-
-    # delete temp?
+    temp = integrals.copy()
+    integrals = np.zeros((m_max,m_max,m_max, angmom_b+1,angmom_b+1,angmom_b+1))
+    integrals[:,:,:, 0,0,0] = np.tensordot(temp, coeffs)[0, :,:,:]
 
     # Horizontal recursion for one nonzero index i.e. V(120|100)
     for b in range(0, angmom_b):
@@ -316,8 +293,8 @@ def _compute_one_elec_integrals(
         integrals[:-2,:,:, b+1:-b-1,b+1:-b-1,b+1] =\
             integrals[1:-1,:,:, b+1:-b-1,b+1:-b-1,b] + rel_dist[:, :, 2]*integrals[:-2,:,:, b+1:-b-1,b+1:-b-1,b]
 
-    # TODO: return integrals not temp; fix tests to fit final shape
-    return temp, integrals
+    # TODO: Transform to correspond to angular momentum components
+    return integrals
 
 
 
