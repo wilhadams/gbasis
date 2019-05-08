@@ -6,6 +6,19 @@ import pytest
 from scipy.special import hyp1f1
 
 
+def boys_func(m, x):
+        """Boys function for evaluating the one-electron integral.
+
+        Parameters
+        ----------
+        m : int
+
+        x :
+        """
+
+        return hyp1f1(m + 1/2, m + 3/2, -x) / (2 * m + 1)
+
+
 def test_compute_one_elec_integrals_v_recursion():
     """Test vertical recursion in _one_elec_int._compute_one_elec_integrals."""
     contr_one = ContractedCartesianGaussians(

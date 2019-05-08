@@ -3,6 +3,7 @@ from gbasis._one_elec_int import _compute_one_elec_integrals
 from gbasis.base_two_symm import BaseTwoIndexSymmetric
 from gbasis.contractions import ContractedCartesianGaussians
 import numpy as np
+from scipy.special import hyp1f1
 
 
 class PointCharge(BaseTwoIndexSymmetric):
@@ -27,7 +28,29 @@ class PointCharge(BaseTwoIndexSymmetric):
     """
 
     @staticmethod
-    def construct_array_contraction(contractions_one, contractions_two, coord_point):
+    def boys_func(m, x):
+        """Boys function for evaluating the one-electron integral.
+
+        Parameters
+        ----------
+        m : int
+            The helper function index?
+        x : np.ndarray(L_b, L_a)
+            The weighted interatomic distance, :math:`\mu * R_{AB}^{2}`
+
+        Notes
+        -----
+        There's some documented instability for hyp1f1, mainly for large values or complex numbers.
+        In this case it seems fine, since m should be less than 10 in most cases, and except for
+        exceptional cases the input, while negative, shouldn't be very large. In scipy > 0.16, this
+        problem becomes a precision error in most cases where it was an overflow error before, so
+        the values should be close even when they are wrong.
+        """
+
+        return hyp1f1(m + 1/2, m + 3/2, -x) / (2 * m + 1)
+
+    @staticmethod
+    def construct_array_contraction(contractions_one, contractions_two, coord_point, boys_func=boys_func):
         """Return the evaluations of the point charge interaction for the given contractions.
 
         Parameters
@@ -43,7 +66,10 @@ class PointCharge(BaseTwoIndexSymmetric):
         """
         # TODO: input checks
 
-        # Should consider swapping a, b for angmom_a < angmom_b
+        # TODO: Overlap screening
+
+        # TODO: Enforce K_a >= K_b, L_a > L_b
+        # Although since a is the inner index for contractions, maybe its K_a <= K_b
 
         coord_a = contractions_one.coord
         angmom_a = contractions_one.angmom
@@ -60,18 +86,15 @@ class PointCharge(BaseTwoIndexSymmetric):
 
         return _compute_one_elec_integrals(
             coord_point,
+            boys_func,
             coord_a,
             angmom_a,
-            angmoms_a,
             alphas_a,
             coeffs_a,
-            norm_a,
             coord_b,
             angmom_b,
-            angmoms_b,
             alphas_b,
             coeffs_b,
-            norm_b,
         )
 
 

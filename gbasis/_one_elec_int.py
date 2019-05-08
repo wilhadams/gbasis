@@ -5,6 +5,7 @@ from scipy.special import hyp1f1
 
 def _compute_one_elec_integrals(
     coord_point,
+    boys_func,
     coord_a,
     angmom_a,
     exps_a,
@@ -19,7 +20,9 @@ def _compute_one_elec_integrals(
     Parameters
     ----------
     coord_point : np.ndarray(3,)
-            Center of the point charge?
+        Center of the point charge.
+    boys_func : function
+
     coord_a : np.ndarray(3,)
         Center of the contraction on the left side.
     angmom_a : int
@@ -73,22 +76,17 @@ def _compute_one_elec_integrals(
     coord_wac = (exps_a * coord_a + exps_b * coord_b) / exps_sum
     # relative distance from weighted average center
     rel_coord_a = coord_wac - coord_a           # R_pa
-    rel_coord_b = coord_wac - coord_b           # R_pb
     rel_dist = coord_a - coord_b                # R_ab
     rel_coord_point = coord_wac - coord_point   # R_pc
     # harmonic mean
     harm_mean = exps_a * exps_b / exps_sum
 
     # Initialize V(m)(000|000) for all m
-    # NOTE: There's some documented instability for hyp1f1, mainly for large values or complex numbers.
-    # In this case it seems fine, since m should be less than 10 in most cases, and except for exceptional
-    # cases the input, while negative, shouldn't be very large. In scipy > 0.16, this problem becomes a
-    # precision error in most cases where it was an overflow error before, so the values should be close
-    # even when they are wrong.
     for m in range(m_max):
-        integrals[m, 0:1,0:1,0:1, :, :] = \
-            hyp1f1(m + 1/2, m + 3/2, (-exps_sum.squeeze() * (rel_coord_point ** 2).sum(2))) / (2 * m + 1) \
+        integrals[m, 0:1,0:1,0:1, :, :] = (
+            boys_func(m, exps_sum.squeeze() * (rel_coord_point ** 2).sum(2))
             * np.exp(-harm_mean.squeeze() * (rel_dist ** 2).sum(2))
+        )
 
     # Vertical recursion for one nonzero index i.e. V(010|000)
     # Slice to avoid if statement
