@@ -29,17 +29,29 @@ def _compute_one_elec_integrals(
         Angular momentum of the contraction on the left side.
     exps_a : np.ndarray(K_a,)
         Values of the (square root of the) precisions of the primitives on the left side.
+    coeffs_a : np.ndarray(K_a, M_a)
+        Contraction coefficients of the primitives on the left side.
+        The coefficients always correspond to generalized contractions, i.e. two-dimensional array
+        where the first index corresponds to the primitive and the second index corresponds to the
+        contraction (with the same exponents and angular momentum).
     coord_b : np.ndarray(3,)
         Center of the contraction on the right side.
     angmom_b : int
         Angular momentum of the contraction on the right side.
     exps_b : np.ndarray(K_b,)
         Values of the (square root of the) precisions of the primitives on the right side.
+    coeffs_b : np.ndarray(K_b, M_b)
+        Contraction coefficients of the primitives on the right side.
+        The coefficients always correspond to generalized contractions, i.e. two-dimensional array
+        where the first index corresponds to the primitive and the second index corresponds to the
+        contraction (with the same exponents and angular momentum).
 
     # FIXME: finish docstring
     Returns
     -------
-    integrals : np.ndarray(L_a + L_b + 1, L_a + L_b + 1, L_a + L_b + 1, L_b + 1, L_b + 1, L_b + 1)
+    integrals : np.ndarray(
+        L_a + L_b + 1, L_a + L_b + 1, L_a + L_b + 1, L_b + 1, L_b + 1, L_b + 1)
+        One electron integrals
 
 
     """
@@ -65,10 +77,6 @@ def _compute_one_elec_integrals(
     coord_b = coord_b[np.newaxis, np.newaxis, :]
     exps_a = exps_a[np.newaxis, :, np.newaxis]
     exps_b = exps_b[:, np.newaxis, np.newaxis]
-    coeffs_a = coeffs_a[np.newaxis, :]
-    coeffs_b = coeffs_b[:, np.newaxis]
-    coeffs = (coeffs_a * coeffs_b).squeeze(axis=-1)
-
 
     # sum of the exponents
     exps_sum = exps_a + exps_b
@@ -239,6 +247,18 @@ def _compute_one_elec_integrals(
         )
     
     # Expand the integral array using contracted basis functions (with m = 0):
+
+    # Contract basis functions
+    # Apply contraction coefficients to contraction a primitives
+    temp = integrals.copy()
+    temp = np.tensordot(temp, coeffs_a, 1)
+    # Swap contraction b primitives to be inner-most index
+    # NOTE: Integrals have now been reordered such that:
+    # axis 4 : index for segmented contractions of contraction a (size: M_a)
+    # axis 5 : primitive of contraction a (size: K_a)
+    temp = np.transpose(temp, (0, 1, 2, 3, 5, 4))
+    temp = np.tensordot(temp, coeffs_b, 1)
+
     # NOTE: Ordering convention for horizontal recursion of integrals
     # axis 0 : a_x (size: m_max)
     # axis 1 : a_y (size: m_max)
@@ -246,55 +266,50 @@ def _compute_one_elec_integrals(
     # axis 3 : b_x (size: angmom_b + 1)
     # axis 4 : b_y (size: angmom_b + 1)
     # axis 5 : b_z (size: angmom_b + 1)
-
-    # Contract basis functions
-    temp = integrals.copy()
-    integrals = np.zeros((m_max,m_max,m_max, angmom_b+1,angmom_b+1,angmom_b+1))
-    integrals[:,:,:, 0,0,0] = np.tensordot(temp, coeffs)[0, :,:,:]
+    # axis 6 : index for segmented contractions of contraction a (size: M_a)
+    # axis 7 : index for segmented contractions of contraction b (size: M_b)
+    integrals = np.zeros(
+        (m_max, m_max, m_max, angmom_b + 1, angmom_b + 1, angmom_b + 1, len(coeffs_a[0]), len(coeffs_b[0]))
+    )
+    integrals[:,:,:, 0,0,0, :, :] = temp[0, :,:,:, :, :]
 
     # Horizontal recursion for one nonzero index i.e. V(120|100)
     for b in range(0, angmom_b):
         # Increment b_x
-        integrals[:-1,:,:, b+1,0,0] = integrals[1:,:,:, b,0,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,0,0]
+        integrals[:-1,:,:, b+1,0,0, :, :] = integrals[1:,:,:, b,0,0, :, :] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,0,0, :, :]
         # Increment b_y
-        integrals[:,:-1,:, 0,b+1,0] = integrals[:,1:,:, 0,b,0] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,b,0]
+        integrals[:,:-1,:, 0,b+1,0, :, :] = integrals[:,1:,:, 0,b,0, :, :] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,b,0, :, :]
         # Increment b_z
-        integrals[:,:,:-1, 0,0,b+1] = integrals[:,:,1:, 0,0,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,0,b]
+        integrals[:,:,:-1, 0,0,b+1, :, :] = integrals[:,:,1:, 0,0,b, :, :] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,0,b, :, :]
 
     # Horizontal recursion for two nonzero indices
     for b in range(0, angmom_b):
         # Increment b_x for all b_y
-        integrals[:-1,:,:, b+1,b+1:-b-1,0] =\
-            integrals[1:,:,:, b,b+1:-b-1,0] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,b+1:-b-1,0]
+        integrals[:-1,:,:, b+1,b+1:-b-1,0, :, :] =\
+            integrals[1:,:,:, b,b+1:-b-1,0, :, :] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,b+1:-b-1,0, :, :]
         # Increment b_x for all b_z
-        integrals[:-1,:,:, b+1,0,b+1:-b-1] =\
-            integrals[1:,:,:, b,0,b+1:-b-1] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,0,b+1:-b-1]
+        integrals[:-1,:,:, b+1,0,b+1:-b-1, :, :] =\
+            integrals[1:,:,:, b,0,b+1:-b-1, :, :] + rel_dist[:, :, 0]*integrals[:-1,:,:, b,0,b+1:-b-1, :, :]
         # Increment b_y for all b_x
-        integrals[:,:-1,:, b+1:-b-1,b+1,0] =\
-            integrals[:,1:,:, b+1:-b-1,b,0] + rel_dist[:, :, 1]*integrals[:,:-1,:, b+1:-b-1,b,0]
+        integrals[:,:-1,:, b+1:-b-1,b+1,0, :, :] =\
+            integrals[:,1:,:, b+1:-b-1,b,0, :, :] + rel_dist[:, :, 1]*integrals[:,:-1,:, b+1:-b-1,b,0, :, :]
         # Increment b_y for all b_z
-        integrals[:,:-1,:, 0,b+1,b+1:-b-1] =\
-            integrals[:,1:,:, 0,b,b+1:-b-1] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,b,b+1:-b-1]
+        integrals[:,:-1,:, 0,b+1,b+1:-b-1, :, :] =\
+            integrals[:,1:,:, 0,b,b+1:-b-1, :, :] + rel_dist[:, :, 1]*integrals[:,:-1,:, 0,b,b+1:-b-1, :, :]
         # Increment b_z for all b_x
-        integrals[:,:,:-1, b+1:-b-1,0,b+1] =\
-            integrals[:,:,1:, b+1:-b-1,0,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, b+1:-b-1,0,b]
+        integrals[:,:,:-1, b+1:-b-1,0,b+1, :, :] =\
+            integrals[:,:,1:, b+1:-b-1,0,b, :, :] + rel_dist[:, :, 2]*integrals[:,:,:-1, b+1:-b-1,0,b, :, :]
         # Increment b_z for all b_y
-        integrals[:,:,:-1, 0,b+1:-b-1,b+1] =\
-            integrals[:,:,1:, 0,b+1:-b-1,b] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,b+1:-b-1,b]
+        integrals[:,:,:-1, 0,b+1:-b-1,b+1, :, :] =\
+            integrals[:,:,1:, 0,b+1:-b-1,b, :, :] + rel_dist[:, :, 2]*integrals[:,:,:-1, 0,b+1:-b-1,b, :, :]
         
     # Horizontal recursion for three nonzero indices
     for b in range(0, angmom_b):
-        integrals[:-2,:,:, b+1,b+1:-b-1,b+1:-b-1] =\
-            integrals[1:-1,:,:, b,b+1:-b-1,b+1:-b-1] + rel_dist[:, :, 0]*integrals[:-2,:,:, b,b+1:-b-1,b+1:-b-1]
-        integrals[:-2,:,:, b+1:-b-1,b+1,b+1:-b-1] =\
-            integrals[1:-1,:,:, b+1:-b-1,b,b+1:-b-1] + rel_dist[:, :, 1]*integrals[:-2,:,:, b+1:-b-1,b,b+1:-b-1]
-        integrals[:-2,:,:, b+1:-b-1,b+1:-b-1,b+1] =\
-            integrals[1:-1,:,:, b+1:-b-1,b+1:-b-1,b] + rel_dist[:, :, 2]*integrals[:-2,:,:, b+1:-b-1,b+1:-b-1,b]
+        integrals[:-2,:,:, b+1,b+1:-b-1,b+1:-b-1, :, :] =\
+            integrals[1:-1,:,:, b,b+1:-b-1,b+1:-b-1, :, :] + rel_dist[:, :, 0]*integrals[:-2,:,:, b,b+1:-b-1,b+1:-b-1, :, :]
+        integrals[:-2,:,:, b+1:-b-1,b+1,b+1:-b-1, :, :] =\
+            integrals[1:-1,:,:, b+1:-b-1,b,b+1:-b-1, :, :] + rel_dist[:, :, 1]*integrals[:-2,:,:, b+1:-b-1,b,b+1:-b-1, :, :]
+        integrals[:-2,:,:, b+1:-b-1,b+1:-b-1,b+1, :, :] =\
+            integrals[1:-1,:,:, b+1:-b-1,b+1:-b-1,b, :, :] + rel_dist[:, :, 2]*integrals[:-2,:,:, b+1:-b-1,b+1:-b-1,b, :, :]
 
-    # TODO: Transform to correspond to angular momentum components
     return integrals
-
-
-
-
-

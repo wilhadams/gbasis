@@ -19,7 +19,7 @@ def boys_func(m, x):
         return hyp1f1(m + 1/2, m + 3/2, -x) / (2 * m + 1)
 
 
-def test_compute_one_elec_integrals_v_recursion():
+def test_compute_one_elec_int_v_recursion():
     """Test vertical recursion in _one_elec_int._compute_one_elec_integrals."""
     contr_one = ContractedCartesianGaussians(
         3, np.array([0.5, 1, 1.5]), 0, np.array([1.0, 2.0]), np.array([0.1, 0.25])
@@ -126,7 +126,7 @@ def test_compute_one_elec_integrals_v_recursion():
         )
 
 
-def test_compute_one_elec_integrals_s_type():
+def test_compute_one_elec_int_s_type():
     # ContractedCartesianGaussians(angmom, coord, charge, coeffs, exps)
     s_type_one = ContractedCartesianGaussians(
         1, np.array([0.5, 1, 1.5]), 0, np.array([1.0]), np.array([0.1])
@@ -226,7 +226,7 @@ def test_compute_one_elec_integrals_s_type():
     )
 
 
-def test_compute_one_elec_integrals_multiple_contractions():
+def test_compute_one_elec_int_multiple_contractions():
     # ContractedCartesianGaussians(angmom, coord, charge, coeffs, exps)
     contr_one = ContractedCartesianGaussians(
         1, np.array([0.5, 1, 1.5]), 0, np.array([1.0, 2.0]), np.array([0.1, 0.25])
@@ -298,13 +298,47 @@ def test_compute_one_elec_integrals_multiple_contractions():
 
 
 # TODO: Add real tests (H-H chain, etc.)
-def test_compute_one_elec_integrals():
+def test_compute_one_elec_int():
     # ContractedCartesianGaussians(angmom, coord, charge, coeffs, exps)
     contr_one = ContractedCartesianGaussians(
         3, np.array([0.5, 1, 1.5]), 0, np.array([1.0, 2.0]), np.array([0.1, 0.25])
     )
     contr_two = ContractedCartesianGaussians(
         2, np.array([1.5, 2, 3]), 0, np.array([3.0, 4.0]), np.array([0.02, 0.01])
+    )
+    coord_a = contr_one.coord
+    angmom_a = contr_one.angmom
+    angmoms_a = contr_one.angmom_components
+    exps_a = contr_one.exps
+    coeffs_a = contr_one.coeffs
+    norm_a = contr_one.norm
+    coord_b = contr_two.coord
+    angmom_b = contr_two.angmom
+    angmoms_b = contr_two.angmom_components
+    exps_b = contr_two.exps
+    coeffs_b = contr_two.coeffs
+    norm_b = contr_two.norm
+    answer = _compute_one_elec_integrals(
+        np.array([0., 0., 0.]),      # coord_point
+        boys_func,
+        coord_a,
+        angmom_a,
+        exps_a,
+        coeffs_a,
+        coord_b,
+        angmom_b,
+        exps_b,
+        coeffs_b
+    )
+    pass
+
+
+def test_compute_one_elec_int_generalized_contraction():
+    contr_one = ContractedCartesianGaussians(
+        3, np.array([0.5, 1, 1.5]), 0, np.array([[1.0, 2.0],[1.5, 2.5]]), np.array([0.1, 0.25])
+    )
+    contr_two = ContractedCartesianGaussians(
+        2, np.array([1.5, 2, 3]), 0, np.array([[3.0, 4.0], [3.5, 4.5]]), np.array([0.02, 0.01])
     )
     coord_a = contr_one.coord
     angmom_a = contr_one.angmom
